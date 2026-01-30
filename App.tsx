@@ -6,6 +6,8 @@ import { MovieList } from './components/MovieList';
 import { TheaterList } from './components/TheaterList';
 import { SeatSelector } from './components/SeatSelector';
 import { BookingConfirmation } from './components/BookingConfirmation';
+import { db } from './firebase';
+import { collection, addDoc } from 'firebase/firestore';
 
 function App() {
   const [currentStep, setCurrentStep] = useState<AppStep>(AppStep.LANGUAGE_SELECTION);
@@ -35,9 +37,9 @@ function App() {
         break;
       case AppStep.CONFIRMATION:
         setCurrentStep(AppStep.MOVIE_LIST); // Go back to movies after booking
-        setBookingState(prev => ({ 
-          ...prev, 
-          movie: null, theater: null, showTime: null, selectedSeats: [] 
+        setBookingState(prev => ({
+          ...prev,
+          movie: null, theater: null, showTime: null, selectedSeats: []
         }));
         break;
       default:
@@ -46,16 +48,16 @@ function App() {
   };
 
   const handleChangeLocation = () => {
-      // Reset flow to city selection but keep language
-      setCurrentStep(AppStep.CITY_SELECTION);
-      setBookingState(prev => ({
-          ...prev,
-          city: null,
-          movie: null,
-          theater: null,
-          showTime: null,
-          selectedSeats: []
-      }));
+    // Reset flow to city selection but keep language
+    setCurrentStep(AppStep.CITY_SELECTION);
+    setBookingState(prev => ({
+      ...prev,
+      city: null,
+      movie: null,
+      theater: null,
+      showTime: null,
+      selectedSeats: []
+    }));
   };
 
   const renderStep = () => {
@@ -68,14 +70,14 @@ function App() {
               updateBooking({ language: lang });
               setCurrentStep(AppStep.CITY_SELECTION);
             }}
-            onCitySelect={() => {}}
+            onCitySelect={() => { }}
           />
         );
       case AppStep.CITY_SELECTION:
         return (
           <LanguageCitySelector
             step={AppStep.CITY_SELECTION}
-            onLanguageSelect={() => {}}
+            onLanguageSelect={() => { }}
             onCitySelect={(city) => {
               updateBooking({ city });
               setCurrentStep(AppStep.MOVIE_LIST);
@@ -112,8 +114,19 @@ function App() {
             language={bookingState.language}
             theater={bookingState.theater}
             showtime={bookingState.showTime}
-            onConfirmSeats={(seats) => {
+            onConfirmSeats={async (seats) => {
               updateBooking({ selectedSeats: seats });
+
+              try {
+                await addDoc(collection(db, "bookings"), {
+                  ...bookingState,
+                  selectedSeats: seats,
+                  timestamp: new Date().toISOString(),
+                });
+              } catch (e) {
+                console.error("Error saving booking to Firebase:", e);
+              }
+
               setCurrentStep(AppStep.CONFIRMATION);
             }}
           />
@@ -123,11 +136,11 @@ function App() {
           <BookingConfirmation
             booking={bookingState}
             onHome={() => {
-                setCurrentStep(AppStep.MOVIE_LIST);
-                setBookingState(prev => ({
-                    ...prev,
-                    movie: null, theater: null, showTime: null, selectedSeats: []
-                }));
+              setCurrentStep(AppStep.MOVIE_LIST);
+              setBookingState(prev => ({
+                ...prev,
+                movie: null, theater: null, showTime: null, selectedSeats: []
+              }));
             }}
           />
         );
@@ -138,8 +151,8 @@ function App() {
 
   return (
     <div className="min-h-screen max-w-md mx-auto bg-gray-50 shadow-2xl overflow-hidden relative border-x border-gray-200">
-      <Header 
-        currentStep={currentStep} 
+      <Header
+        currentStep={currentStep}
         bookingState={bookingState}
         onBack={handleBack}
         onChangeLocation={handleChangeLocation}
