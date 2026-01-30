@@ -12,6 +12,15 @@ const firebaseConfig = {
     appId: import.meta.env.VITE_FIREBASE_APP_ID
 };
 
+// Debug logging
+if (!firebaseConfig.apiKey) {
+    console.error("FIREBASE CONFIG ERROR: API Key is missing. Check your .env.local file.");
+} else {
+    console.log("Firebase initialized with project:", firebaseConfig.projectId);
+}
+
+
+
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
